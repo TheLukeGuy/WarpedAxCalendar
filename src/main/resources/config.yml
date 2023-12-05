@@ -1,56 +1,31 @@
-prefix: "&#FF0055&lAxCalendar &7» "
+# The MiniMessage-formatted prefix used for all messages.
+prefix: '<dark_gray>[<red>Warped</red><white>Calendar</white>]</dark_gray> '
 
-# which month should the calendar be active in?
+# Which month should the calendar be active in?
 # https://docs.oracle.com/javase/8/docs/api/java/time/Month.html
-month: "DECEMBER"
+month: DECEMBER
 
 # https://docs.oracle.com/middleware/1221/wcs/tag-ref/MISC/TimeZones.html
-# set to "" to use the server default
-# example: Europe/London
-timezone: ""
+# Set to '' to use the server default.
+# Example: Europe/London
+timezone: ''
 
-# should players be able to claim their older presents
+# Should players be able to claim their older presents?
 allow-late-claiming: true
 
-# how many accounts from one ip can claim a day's present
+# How many accounts from one network can claim a day's present?
 max-accounts-per-ip: 3
 
-# the format of the %time% placeholder
-# 1 - dd:HH:MM:SS, for example 04:01:25:35
-# 2 - short format, for example 20m
-timer-format: 1
+# How many nanoseconds of playtime does a player need, for the current day, to claim presents?
+# Hell yeah, we have nanosecond precision here on WarpedRealm. Sadly not enough donations to parse a nicely-formatted
+# representation of a duration like "30m" though. https://shop.warpedrealm.com/
+#
+# Some common values:
+# 5 minutes = 300000000000
+# 10 minutes = 600000000000
+# 30 minutes = 1800000000000
+# 1 hour = 3600000000000
+required-day-playtime-to-claim: 1800000000000
 
-# auto update gui
-# in ticks
-# set to -1 to disable
-update-gui: 20
-
-# should the player need these to claim presents?
-# list of options:
-# [PLAYTIME] - the playtime statistic of the player (in minutes)
-# [PERMISSION] - require a player to have a permission to claim presents
-# to enable remove the [] and add the one you need without the hashtag:
-#  - "[PLAYTIME] 30"
-#  - "[PERMISSION] some.permission.here"
-claim-requirements: []
-
-database:
-  # h2, sqlite, mysql, postgresql
-  # for single server setups we recommend h2 because it's way faster than sqlite
-  type: "h2"
-
-  # you only need to touch these when using mysql/postgresql
-  address: 127.0.0.1
-  port: 3306
-  database: admin
-  username: admin
-  password: 'admin'
-  pool:
-    maximum-pool-size: 10
-    minimum-idle: 10
-    maximum-lifetime: 1800000
-    keepalive-time: 0
-    connection-timeout: 5000
-
-# do not edit
+# ~~Do not edit~~ don't tell me what to do
 version: 2

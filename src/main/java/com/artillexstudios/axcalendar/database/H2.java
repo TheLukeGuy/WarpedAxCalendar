@@ -1,47 +1,42 @@
-package com.artillexstudios.axcalendar.database.impl;
+package com.artillexstudios.axcalendar.database;
 
-import com.artillexstudios.axcalendar.database.Database;
-import com.artillexstudios.axcalendar.utils.IpUtils;
-import com.zaxxer.hikari.HikariConfig;
-import com.zaxxer.hikari.HikariDataSource;
+import com.artillexstudios.axcalendar.shitoldutils.IpUtils;
 import org.bukkit.entity.Player;
+import org.h2.jdbc.JdbcConnection;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.File;
+import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Properties;
 import java.util.UUID;
 
-import static com.artillexstudios.axcalendar.AxCalendar.CONFIG;
+public class H2 implements Database {
+    private final Path dataDir;
+    private Connection conn;
 
-public class MySQL implements Database {
-    private final HikariConfig hConfig = new HikariConfig();
-    private HikariDataSource dataSource;
+    public H2(Path dataDir) {
+        this.dataDir = dataDir;
+    }
 
     @Override
     public String getType() {
-        return "MySQL";
+        return "H2";
     }
 
     @Override
     public void setup() {
 
-        hConfig.setPoolName("axboosters-pool");
-
-        hConfig.setMaximumPoolSize(CONFIG.getInt("database.pool.maximum-pool-size"));
-        hConfig.setMinimumIdle(CONFIG.getInt("database.pool.minimum-idle"));
-        hConfig.setMaxLifetime(CONFIG.getInt("database.pool.maximum-lifetime"));
-        hConfig.setKeepaliveTime(CONFIG.getInt("database.pool.keepalive-time"));
-        hConfig.setConnectionTimeout(CONFIG.getInt("database.pool.connection-timeout"));
-
-        hConfig.setDriverClassName("com.mysql.jdbc.Driver");
-        hConfig.setJdbcUrl("jdbc:mysql://" + CONFIG.getString("database.address") + ":"+ CONFIG.getString("database.port") +"/" + CONFIG.getString("database.database"));
-        hConfig.addDataSourceProperty("user", CONFIG.getString("database.username"));
-        hConfig.addDataSourceProperty("password", CONFIG.getString("database.password"));
-
-        dataSource = new HikariDataSource(hConfig);
+        try {
+            conn = new JdbcConnection("jdbc:h2:./" + this.dataDir + "/data;mode=MySQL", new Properties(), null, null, false);
+            conn.setAutoCommit(true);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
 
         final String CREATE_TABLE = """
                         CREATE TABLE IF NOT EXISTS axcalendar_data (
@@ -51,7 +46,7 @@ public class MySQL implements Database {
                         );
                 """;
 
-        try (Connection conn = dataSource.getConnection(); PreparedStatement stmt = conn.prepareStatement(CREATE_TABLE)) {
+        try (PreparedStatement stmt = conn.prepareStatement(CREATE_TABLE)) {
             stmt.executeUpdate();
         } catch (SQLException ex) {
             ex.printStackTrace();
@@ -62,10 +57,10 @@ public class MySQL implements Database {
     public void claim(@NotNull Player player, int day) {
 
         final String sql = """
-                        INSERT INTO axcalendar_data (uuid, day, ipv4) VALUES (?, ?, ?);
+                        INSERT INTO axcalendar_data (uuid, `day`, ipv4) VALUES (?, ?, ?);
                 """;
 
-        try (Connection conn = dataSource.getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, player.getUniqueId().toString());
             stmt.setInt(2, day);
             stmt.setInt(3, IpUtils.ipToInt(player.getAddress().getAddress()));
@@ -80,10 +75,10 @@ public class MySQL implements Database {
     public boolean isClaimed(@NotNull Player player, int day) {
 
         final String sql = """
-                        SELECT * FROM axcalendar_data WHERE uuid = ? AND day = ? LIMIT 1;
+                        SELECT * FROM axcalendar_data WHERE (`uuid` = ? AND `day` = ?) LIMIT 1;
                 """;
 
-        try (Connection conn = dataSource.getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, player.getUniqueId().toString());
             stmt.setInt(2, day);
 
@@ -102,10 +97,10 @@ public class MySQL implements Database {
         final ArrayList<Integer> claimedDays = new ArrayList<>();
 
         final String sql = """
-                        SELECT day FROM axcalendar_data WHERE uuid = ?;
+                        SELECT `day` FROM axcalendar_data WHERE uuid = ?;
                 """;
 
-        try (Connection conn = dataSource.getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, player.getUniqueId().toString());
 
             try (ResultSet rs = stmt.executeQuery()) {
@@ -122,10 +117,10 @@ public class MySQL implements Database {
     public int countIps(@NotNull Player player, int day) {
 
         final String sql = """
-                        SELECT COUNT(*) FROM axcalendar_data WHERE ipv4 = ? AND day = ?;
+                        SELECT COUNT(*) FROM axcalendar_data WHERE ipv4 = ? AND `day` = ?;
                 """;
 
-        try (Connection conn = dataSource.getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, IpUtils.ipToInt(player.getAddress().getAddress()));
             stmt.setInt(2, day);
 
@@ -146,7 +141,7 @@ public class MySQL implements Database {
                         DELETE FROM axcalendar_data WHERE uuid = ?;
                 """;
 
-        try (Connection conn = dataSource.getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, uuid.toString());
 
             stmt.executeUpdate();
@@ -158,7 +153,7 @@ public class MySQL implements Database {
     @Override
     public void disable() {
         try {
-            dataSource.close();
+            conn.close();
         } catch (Exception ex) {
             ex.printStackTrace();
         }

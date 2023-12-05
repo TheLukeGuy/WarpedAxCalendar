@@ -1,0 +1,6 @@
+name: WarpedAxCalendar
+version: '${project.version}'
+main: com.artillexstudios.axcalendar.AxCalendar
+description: The Advent calendar plugin for WarpedRealm. Hopefully not for long.
+authors: [Luke, Artillex Studios]
+api-version: '1.20'

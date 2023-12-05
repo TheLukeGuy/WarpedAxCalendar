@@ -1,4 +1,0 @@
-name: AxCalendar
-version: '${project.version}'
-main: com.artillexstudios.axcalendar.AxCalendar
-api-version: '1.18'
